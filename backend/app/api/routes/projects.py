@@ -6,7 +6,7 @@ from typing import Annotated, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 from ..dependencies import get_db_session, get_current_tenant_id
 from ...infrastructure.repositories.sqlalchemy_repositories import ProjectRepositorySQLAlchemy
@@ -52,14 +52,11 @@ async def list_projects(
     offset: int = Query(0, ge=0),
 ):
     """List projects for current tenant with simple pagination."""
-    # Fetch total
     from ...infrastructure.db.models import Project
-    total_result = await session.execute(select(Project).where(Project.tenant_id == tenant_id))
-    total = len(total_result.scalars().all())
 
-    # Fetch page
-    repo = ProjectRepositorySQLAlchemy(session)
-    # Use direct query here for pagination; repo could be extended to support pagination if needed
+    total_q = select(func.count()).select_from(Project).where(Project.tenant_id == tenant_id)
+    total = (await session.execute(total_q)).scalar_one()
+
     result = await session.execute(
         select(Project)
         .where(Project.tenant_id == tenant_id)

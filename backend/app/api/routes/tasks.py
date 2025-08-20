@@ -5,7 +5,7 @@ from typing import Annotated, Optional
 
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from enum import Enum
 from datetime import datetime
@@ -94,9 +94,8 @@ async def list_tasks(
     if due_after:
         base = base.where(Task.due_date != None).where(Task.due_date >= due_after)  # noqa: E711
 
-    # total
-    total_result = await session.execute(base)
-    total = len(total_result.scalars().all())
+    count_q = select(func.count()).select_from(base.subquery())
+    total = (await session.execute(count_q)).scalar_one()
 
     # sort
     order = Task.created_at.desc()

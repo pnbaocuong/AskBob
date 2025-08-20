@@ -15,16 +15,26 @@ export default function ProjectDetailPage() {
   const [editStatus, setEditStatus] = useState('todo')
   const [editAssignee, setEditAssignee] = useState('')
 
+  // Filters / Sort / Pagination
+  const [statusFilter, setStatusFilter] = useState('')
+  const [priorityFilter, setPriorityFilter] = useState('')
+  const [sort, setSort] = useState('-created_at')
+  const [limit, setLimit] = useState(20)
+  const [offset, setOffset] = useState(0)
+
   const load = async () => {
     try {
-      const { data } = await api.get('/tasks/', { params: { project_id: id } })
+      const params = { project_id: id, sort, limit, offset }
+      if (statusFilter) params.status_filter = statusFilter
+      if (priorityFilter) params.priority_filter = priorityFilter
+      const { data } = await api.get('/tasks/', { params })
       setTasks(Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []))
     } catch (e) {
       setError('Failed to load tasks')
     }
   }
 
-  useEffect(() => { load() }, [id])
+  useEffect(() => { load() }, [id, statusFilter, priorityFilter, sort, limit, offset])
 
   const createTask = async (e) => {
     e.preventDefault()
@@ -89,6 +99,30 @@ export default function ProjectDetailPage() {
   return (
     <div className="panel">
       <h2>Project Detail</h2>
+
+      <div className="form-row" style={{ marginBottom: 12 }}>
+        <select value={statusFilter} onChange={(e) => { setOffset(0); setStatusFilter(e.target.value) }}>
+          <option value="">All Status</option>
+          <option value="todo">Todo</option>
+          <option value="in_progress">In Progress</option>
+          <option value="done">Done</option>
+        </select>
+        <select value={priorityFilter} onChange={(e) => { setOffset(0); setPriorityFilter(e.target.value) }}>
+          <option value="">All Priority</option>
+          <option value="low">Low</option>
+          <option value="medium">Medium</option>
+          <option value="high">High</option>
+        </select>
+        <select value={sort} onChange={(e) => { setOffset(0); setSort(e.target.value) }}>
+          <option value="-created_at">Newest created</option>
+          <option value="created_at">Oldest created</option>
+          <option value="due_date">Due date asc</option>
+          <option value="-due_date">Due date desc</option>
+          <option value="priority">Priority asc</option>
+          <option value="-priority">Priority desc</option>
+        </select>
+      </div>
+
       <form onSubmit={createTask}>
         <div className="form-row" style={{ marginBottom: 12 }}>
           <input placeholder="Task title" value={title} onChange={(e) => setTitle(e.target.value)} />
