@@ -17,6 +17,7 @@ app.add_middleware(
 
 @app.get("/")
 async def root():
+    """Basic health endpoint."""
     return JSONResponse({"status": "ok"})
 
 

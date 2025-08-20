@@ -10,6 +10,11 @@ from .base import Base
 
 
 class Tenant(Base):
+    """Tenant record representing an organization.
+
+    Provides a parent scope for users, projects and tasks.
+    """
+
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(120), unique=True, nullable=False)
     domain: Mapped[Optional[str]] = mapped_column(String(255), nullable=True, unique=True)
@@ -20,6 +25,8 @@ class Tenant(Base):
 
 
 class User(Base):
+    """Application user scoped to a single tenant."""
+
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False, index=True)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
@@ -31,6 +38,8 @@ class User(Base):
 
 
 class Project(Base):
+    """Project owned by a tenant and parent for tasks."""
+
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     name: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
@@ -42,6 +51,8 @@ class Project(Base):
 
 
 class Task(Base):
+    """Task entry under a project, scoped by tenant for isolation."""
+
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(50), default="todo", nullable=False)
