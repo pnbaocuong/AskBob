@@ -3,7 +3,7 @@
 import uuid
 from typing import Annotated, Optional
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -11,8 +11,10 @@ from enum import Enum
 
 from ..dependencies import get_db_session, get_current_tenant_id
 from ...infrastructure.db.models import Task, Project
+from ...infrastructure.config import get_settings
 
 router = APIRouter()
+settings = get_settings()
 
 
 class StatusEnum(str, Enum):
@@ -49,26 +51,39 @@ class TaskOut(BaseModel):
         from_attributes = True
 
 
-@router.get("/", response_model=list[TaskOut])
+class TaskListResponse(BaseModel):
+    total: int
+    items: list[TaskOut]
+
+
+@router.get("/", response_model=TaskListResponse)
 async def list_tasks(
     session: Annotated[AsyncSession, Depends(get_db_session)],
-    tenant_id: Annotated[str, Depends(get_current_tenant_id)],
+    tenant_id: Annotated[uuid.UUID, Depends(get_current_tenant_id)],
     project_id: Optional[uuid.UUID] = None,
+    limit: int = Query(settings.default_page_size, ge=1, le=settings.max_page_size),
+    offset: int = Query(0, ge=0),
 ):
-    """List tasks for current tenant; optionally filter by project."""
+    """List tasks for current tenant; optionally filter by project. Supports pagination."""
+    total_result = await session.execute(
+        select(Task).where(Task.tenant_id == tenant_id).where(Task.project_id == project_id) if project_id else select(Task).where(Task.tenant_id == tenant_id)
+    )
+    total = len(total_result.scalars().all())
+
     query = select(Task).where(Task.tenant_id == tenant_id)
     if project_id:
         query = query.where(Task.project_id == project_id)
-    result = await session.execute(query.order_by(Task.created_at.desc()))
+    result = await session.execute(query.order_by(Task.created_at.desc()).limit(limit).offset(offset))
     tasks = result.scalars().all()
-    return [TaskOut.model_validate(t) for t in tasks]
+    items = [TaskOut.model_validate(t) for t in tasks]
+    return TaskListResponse(total=total, items=items)
 
 
 @router.post("/", response_model=TaskOut, status_code=201)
 async def create_task(
     body: TaskCreate,
     session: Annotated[AsyncSession, Depends(get_db_session)],
-    tenant_id: Annotated[str, Depends(get_current_tenant_id)],
+    tenant_id: Annotated[uuid.UUID, Depends(get_current_tenant_id)],
 ):
     """Create a task under a project owned by current tenant."""
     # Validate project belongs to tenant
@@ -94,7 +109,7 @@ async def update_task(
     task_id: uuid.UUID,
     body: TaskUpdate,
     session: Annotated[AsyncSession, Depends(get_db_session)],
-    tenant_id: Annotated[str, Depends(get_current_tenant_id)],
+    tenant_id: Annotated[uuid.UUID, Depends(get_current_tenant_id)],
 ):
     """Update a task owned by current tenant."""
     result = await session.execute(select(Task).where(Task.id == task_id, Task.tenant_id == tenant_id))
@@ -118,7 +133,7 @@ async def update_task(
 async def delete_task(
     task_id: uuid.UUID,
     session: Annotated[AsyncSession, Depends(get_db_session)],
-    tenant_id: Annotated[str, Depends(get_current_tenant_id)],
+    tenant_id: Annotated[uuid.UUID, Depends(get_current_tenant_id)],
 ):
     """Delete a task owned by current tenant."""
     result = await session.execute(select(Task).where(Task.id == task_id, Task.tenant_id == tenant_id))

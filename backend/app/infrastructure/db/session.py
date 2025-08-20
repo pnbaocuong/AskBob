@@ -4,7 +4,15 @@ from sqlalchemy.orm import sessionmaker
 from ..config import get_settings
 
 settings = get_settings()
-engine = create_async_engine(settings.database_url_async, echo=False, future=True)
+engine = create_async_engine(
+    settings.database_url_async,
+    echo=False,
+    future=True,
+    pool_size=settings.db_pool_size,
+    max_overflow=settings.db_max_overflow,
+    pool_timeout=settings.db_pool_timeout,
+    pool_recycle=settings.db_pool_recycle,
+)
 
 # Async session factory used across the app via dependency injection
 AsyncSessionLocal = sessionmaker(
