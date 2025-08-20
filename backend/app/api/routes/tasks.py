@@ -8,6 +8,7 @@ from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from enum import Enum
+from datetime import datetime
 
 from ..dependencies import get_db_session, get_current_tenant_id
 from ...infrastructure.db.models import Task, Project
@@ -23,12 +24,19 @@ class StatusEnum(str, Enum):
     in_progress = "in_progress"
     done = "done"
 
+class PriorityEnum(str, Enum):
+    low = "low"
+    medium = "medium"
+    high = "high"
+
 
 class TaskCreate(BaseModel):
     """Payload to create a task under a project."""
     title: str
     status: StatusEnum = StatusEnum.todo
     assignee: Optional[str] = None
+    priority: PriorityEnum = PriorityEnum.medium
+    due_date: Optional[datetime] = None
     project_id: uuid.UUID
 
 
@@ -37,6 +45,8 @@ class TaskUpdate(BaseModel):
     title: Optional[str] = None
     status: Optional[StatusEnum] = None
     assignee: Optional[str] = None
+    priority: Optional[PriorityEnum] = None
+    due_date: Optional[datetime] = None
 
 
 class TaskOut(BaseModel):
@@ -45,6 +55,8 @@ class TaskOut(BaseModel):
     title: str
     status: str
     assignee: Optional[str] = None
+    priority: str
+    due_date: Optional[datetime] = None
     project_id: uuid.UUID
 
     class Config:
@@ -63,19 +75,45 @@ async def list_tasks(
     project_id: Optional[uuid.UUID] = None,
     limit: int = Query(settings.default_page_size, ge=1, le=settings.max_page_size),
     offset: int = Query(0, ge=0),
+    status_filter: Optional[StatusEnum] = None,
+    priority_filter: Optional[PriorityEnum] = None,
+    due_before: Optional[datetime] = None,
+    due_after: Optional[datetime] = None,
+    sort: Optional[str] = Query(None, description="Sort by: created_at|due_date|priority (prefix - for desc)"),
 ):
-    """List tasks for current tenant; optionally filter by project. Supports pagination."""
-    total_result = await session.execute(
-        select(Task).where(Task.tenant_id == tenant_id).where(Task.project_id == project_id) if project_id else select(Task).where(Task.tenant_id == tenant_id)
-    )
+    """List tasks for current tenant; filter/sort/pagination supported."""
+    base = select(Task).where(Task.tenant_id == tenant_id)
+    if project_id:
+        base = base.where(Task.project_id == project_id)
+    if status_filter:
+        base = base.where(Task.status == status_filter.value)
+    if priority_filter:
+        base = base.where(Task.priority == priority_filter.value)
+    if due_before:
+        base = base.where(Task.due_date != None).where(Task.due_date <= due_before)  # noqa: E711
+    if due_after:
+        base = base.where(Task.due_date != None).where(Task.due_date >= due_after)  # noqa: E711
+
+    # total
+    total_result = await session.execute(base)
     total = len(total_result.scalars().all())
 
-    query = select(Task).where(Task.tenant_id == tenant_id)
-    if project_id:
-        query = query.where(Task.project_id == project_id)
-    result = await session.execute(query.order_by(Task.created_at.desc()).limit(limit).offset(offset))
-    tasks = result.scalars().all()
-    items = [TaskOut.model_validate(t) for t in tasks]
+    # sort
+    order = Task.created_at.desc()
+    if sort:
+        s = sort.strip().lower()
+        desc = s.startswith('-')
+        key = s[1:] if desc else s
+        if key == 'created_at':
+            order = Task.created_at.desc() if desc else Task.created_at.asc()
+        elif key == 'due_date':
+            order = Task.due_date.desc() if desc else Task.due_date.asc()
+        elif key == 'priority':
+            order = Task.priority.desc() if desc else Task.priority.asc()
+
+    page_q = base.order_by(order).limit(limit).offset(offset)
+    result = await session.execute(page_q)
+    items = [TaskOut.model_validate(t) for t in result.scalars().all()]
     return TaskListResponse(total=total, items=items)
 
 
@@ -95,6 +133,8 @@ async def create_task(
         title=body.title,
         status=body.status.value,
         assignee=body.assignee,
+        priority=body.priority.value,
+        due_date=body.due_date,
         project_id=body.project_id,
         tenant_id=tenant_id,
     )
@@ -123,6 +163,10 @@ async def update_task(
         task.status = body.status.value
     if body.assignee is not None:
         task.assignee = body.assignee
+    if body.priority is not None:
+        task.priority = body.priority.value
+    if body.due_date is not None:
+        task.due_date = body.due_date
 
     await session.commit()
     await session.refresh(task)

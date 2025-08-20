@@ -10,6 +10,11 @@ export default function ProjectDetailPage() {
   const [assignee, setAssignee] = useState('')
   const [error, setError] = useState('')
 
+  const [editingId, setEditingId] = useState('')
+  const [editTitle, setEditTitle] = useState('')
+  const [editStatus, setEditStatus] = useState('todo')
+  const [editAssignee, setEditAssignee] = useState('')
+
   const load = async () => {
     try {
       const { data } = await api.get('/tasks/', { params: { project_id: id } })
@@ -31,6 +36,35 @@ export default function ProjectDetailPage() {
       load()
     } catch (e) {
       setError('Failed to create task')
+    }
+  }
+
+  const startEdit = (t) => {
+    setEditingId(t.id)
+    setEditTitle(t.title)
+    setEditStatus(t.status)
+    setEditAssignee(t.assignee || '')
+  }
+
+  const cancelEdit = () => {
+    setEditingId('')
+    setEditTitle('')
+    setEditStatus('todo')
+    setEditAssignee('')
+  }
+
+  const saveEdit = async () => {
+    if (!editingId) return
+    try {
+      await api.put(`/tasks/${editingId}`, {
+        title: editTitle,
+        status: editStatus,
+        assignee: editAssignee || null,
+      })
+      cancelEdit()
+      load()
+    } catch (e) {
+      setError('Failed to update task')
     }
   }
 
@@ -73,15 +107,36 @@ export default function ProjectDetailPage() {
       <ul className="list">
         {tasks.map(t => (
           <li key={t.id}>
-            <div>
-              <b>{t.title}</b> — {t.status} {t.assignee ? `(${t.assignee})` : ''}
-            </div>
-            <div>
-              <button onClick={() => updateStatus(t.id, 'todo')}>Todo</button>
-              <button style={{ marginLeft: 8 }} onClick={() => updateStatus(t.id, 'in_progress')}>Doing</button>
-              <button style={{ marginLeft: 8 }} onClick={() => updateStatus(t.id, 'done')}>Done</button>
-              <button className="danger" style={{ marginLeft: 12 }} onClick={() => deleteTask(t.id)}>Delete</button>
-            </div>
+            {editingId === t.id ? (
+              <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'space-between' }}>
+                <div className="form-row" style={{ flex: 1 }}>
+                  <input placeholder="Task title" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                  <select value={editStatus} onChange={(e) => setEditStatus(e.target.value)}>
+                    <option value="todo">Todo</option>
+                    <option value="in_progress">In Progress</option>
+                    <option value="done">Done</option>
+                  </select>
+                  <input placeholder="Assignee" value={editAssignee} onChange={(e) => setEditAssignee(e.target.value)} />
+                </div>
+                <div>
+                  <button onClick={saveEdit}>Save</button>
+                  <button className="danger" style={{ marginLeft: 8 }} onClick={cancelEdit} type="button">Cancel</button>
+                </div>
+              </div>
+            ) : (
+              <>
+                <div>
+                  <b>{t.title}</b> — {t.status} {t.assignee ? `(${t.assignee})` : ''}
+                </div>
+                <div>
+                  <button onClick={() => startEdit(t)}>Edit</button>
+                  <button style={{ marginLeft: 8 }} onClick={() => updateStatus(t.id, 'todo')}>Todo</button>
+                  <button style={{ marginLeft: 8 }} onClick={() => updateStatus(t.id, 'in_progress')}>Doing</button>
+                  <button style={{ marginLeft: 8 }} onClick={() => updateStatus(t.id, 'done')}>Done</button>
+                  <button className="danger" style={{ marginLeft: 12 }} onClick={() => deleteTask(t.id)}>Delete</button>
+                </div>
+              </>
+            )}
           </li>
         ))}
       </ul>

@@ -57,6 +57,8 @@ class Task(Base):
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     status: Mapped[str] = mapped_column(String(50), default="todo", nullable=False)
     assignee: Mapped[Optional[str]] = mapped_column(String(255), nullable=True)
+    priority: Mapped[str] = mapped_column(String(20), default="medium", nullable=False)
+    due_date: Mapped[Optional[datetime]] = mapped_column(DateTime, nullable=True)
     project_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("project.id", ondelete="CASCADE"), nullable=False, index=True)
     tenant_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tenant.id", ondelete="CASCADE"), nullable=False, index=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, nullable=False)
@@ -65,3 +67,6 @@ class Task(Base):
 
 
 Index("ix_task_project_tenant", Task.project_id, Task.tenant_id)
+Index("ix_task_status", Task.status)
+Index("ix_task_priority", Task.priority)
+Index("ix_task_due_date", Task.due_date)
