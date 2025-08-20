@@ -62,7 +62,21 @@ pytest -q
 - Frontend: `frontend/src/` contains `component/`, `features/`, `lib/`, `routes/`.
 - Multi-tenancy: all queries are filtered by the user `tenant_id` from JWT.
 
+## Design decisions
+- Clean Architecture: domain/use-cases are framework-agnostic for testability and maintainability; infrastructure behind interfaces (repositories) to enable easy swapping.
+- Async SQLAlchemy: better concurrency characteristics for IO-bound API with DB pool tuning via env.
+- tenant_id per-row isolation: simple, scalable, and index-friendly isolation pattern; works well with a single DB and aligns with product scope.
+- Declarative migrations (Alembic): reproducible schema with clear upgrade/downgrade history.
+- Containerized runtime: Nginx to serve static FE, Uvicorn for API; easy to scale and deploy.
+
+## Assumptions
+- Each user belongs to exactly one tenant; cross-tenant access is not allowed.
+- Authorization is scoped to tenant-level; no advanced RBAC/roles beyond tenant isolation.
+- Error handling is standardized at the API boundary; messages are concise and non-leaking.
+- Pagination defaults: `DEFAULT_PAGE_SIZE=20`, `MAX_PAGE_SIZE=100`.
+- Security: JWT HS256 for simplicity; deployments should terminate TLS via reverse proxy and rotate `SECRET_KEY` properly.
+
 ## Notes
 - Env examples: `backend/env.example`, `frontend/.env.example`.
-- Sample migration: `backend/alembic/versions/0001_initial.py`.
+- Sample migration: `backend/alembic/versions/0001_initial.py` (and `0002_add_task_priority_due_date.py`).
 - Do not commit secrets (SECRET_KEY, DB credentials).
