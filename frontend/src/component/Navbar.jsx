@@ -9,11 +9,11 @@ export default function Navbar() {
     navigate('/login')
   }
   return (
-    <div style={{ display: 'flex', justifyContent: 'space-between', padding: '12px 16px', background: '#121212', color: 'white' }}>
-      <Link to="/" style={{ color: 'white', textDecoration: 'none', fontWeight: 600 }}>AskBob PMS</Link>
+    <>
+      <Link to="/" className="navbar-title">AskBob PMS</Link>
       <div>
-        {token ? <button onClick={logout}>Logout</button> : <Link to="/login" style={{ color: 'white' }}>Login</Link>}
+        {token ? <button onClick={logout}>Logout</button> : <Link to="/login">Login</Link>}
       </div>
-    </div>
+    </>
   )
 }

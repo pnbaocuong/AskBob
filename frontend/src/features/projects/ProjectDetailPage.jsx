@@ -13,7 +13,7 @@ export default function ProjectDetailPage() {
   const load = async () => {
     try {
       const { data } = await api.get('/tasks/', { params: { project_id: id } })
-      setTasks(data)
+      setTasks(Array.isArray(data?.items) ? data.items : (Array.isArray(data) ? data : []))
     } catch (e) {
       setError('Failed to load tasks')
     }
@@ -53,31 +53,35 @@ export default function ProjectDetailPage() {
   }
 
   return (
-    <div>
+    <div className="panel">
       <h2>Project Detail</h2>
-      <form onSubmit={createTask} style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-        <input placeholder="Task title" value={title} onChange={(e) => setTitle(e.target.value)} />
-        <select value={status} onChange={(e) => setStatus(e.target.value)}>
-          <option value="todo">Todo</option>
-          <option value="in_progress">In Progress</option>
-          <option value="done">Done</option>
-        </select>
-        <input placeholder="Assignee" value={assignee} onChange={(e) => setAssignee(e.target.value)} />
-        <button type="submit">Add task</button>
+      <form onSubmit={createTask}>
+        <div className="form-row" style={{ marginBottom: 12 }}>
+          <input placeholder="Task title" value={title} onChange={(e) => setTitle(e.target.value)} />
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="todo">Todo</option>
+            <option value="in_progress">In Progress</option>
+            <option value="done">Done</option>
+          </select>
+          <input placeholder="Assignee" value={assignee} onChange={(e) => setAssignee(e.target.value)} />
+          <button type="submit">Add task</button>
+        </div>
       </form>
 
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+      {error && <p style={{ color: 'tomato' }}>{error}</p>}
 
-      <ul>
+      <ul className="list">
         {tasks.map(t => (
           <li key={t.id}>
-            <b>{t.title}</b> — {t.status} {t.assignee ? `(${t.assignee})` : ''}
-            <span style={{ marginLeft: 8 }}>
+            <div>
+              <b>{t.title}</b> — {t.status} {t.assignee ? `(${t.assignee})` : ''}
+            </div>
+            <div>
               <button onClick={() => updateStatus(t.id, 'todo')}>Todo</button>
-              <button onClick={() => updateStatus(t.id, 'in_progress')}>Doing</button>
-              <button onClick={() => updateStatus(t.id, 'done')}>Done</button>
-              <button style={{ marginLeft: 8 }} onClick={() => deleteTask(t.id)}>Delete</button>
-            </span>
+              <button style={{ marginLeft: 8 }} onClick={() => updateStatus(t.id, 'in_progress')}>Doing</button>
+              <button style={{ marginLeft: 8 }} onClick={() => updateStatus(t.id, 'done')}>Done</button>
+              <button className="danger" style={{ marginLeft: 12 }} onClick={() => deleteTask(t.id)}>Delete</button>
+            </div>
           </li>
         ))}
       </ul>

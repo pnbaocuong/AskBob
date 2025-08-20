@@ -13,9 +13,13 @@ function RequireAuth({ children }) {
 
 export default function App() {
   return (
-    <div style={{ fontFamily: 'Inter, system-ui, Arial' }}>
-      <Navbar />
-      <div style={{ maxWidth: 960, margin: '24px auto', padding: '0 16px' }}>
+    <div>
+      <div className="navbar">
+        <div className="navbar-inner">
+          <Navbar />
+        </div>
+      </div>
+      <div className="container">
         <Routes>
           <Route path="/login" element={<Login />} />
           <Route path="/" element={<RequireAuth><ProjectsPage /></RequireAuth>} />

@@ -44,29 +44,28 @@ export default function Login() {
   }
 
   return (
-    <div style={{ maxWidth: 420, margin: '48px auto' }}>
-      <h2>Login</h2>
-      <form onSubmit={doLogin}>
-        <div style={{ display: 'grid', gap: 12 }}>
-          <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <button disabled={loading} type="submit">{loading ? 'Processing...' : 'Login'}</button>
-        </div>
-      </form>
-
-      <hr style={{ margin: '24px 0' }} />
-
-      <h3>Or Quick Register</h3>
-      <form onSubmit={doRegister}>
-        <div style={{ display: 'grid', gap: 12 }}>
-          <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
-          <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
-          <input placeholder="Tenant name (optional)" value={tenant} onChange={(e) => setTenant(e.target.value)} />
-          <button disabled={loading} type="submit">{loading ? 'Processing...' : 'Register & Login'}</button>
-        </div>
-      </form>
-
-      {error && <p style={{ color: 'red' }}>{error}</p>}
+    <div className="container">
+      <div className="panel">
+        <h2>Login</h2>
+        <form onSubmit={doLogin}>
+          <div className="form-row">
+            <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <button disabled={loading} type="submit">{loading ? 'Processing...' : 'Login'}</button>
+          </div>
+        </form>
+        <hr style={{ borderColor: '#242a33', margin: '16px 0' }} />
+        <h3>Or Quick Register</h3>
+        <form onSubmit={doRegister}>
+          <div className="form-row">
+            <input placeholder="Email" value={email} onChange={(e) => setEmail(e.target.value)} />
+            <input type="password" placeholder="Password" value={password} onChange={(e) => setPassword(e.target.value)} />
+            <input placeholder="Tenant name (optional)" value={tenant} onChange={(e) => setTenant(e.target.value)} />
+            <button disabled={loading} type="submit">{loading ? 'Processing...' : 'Register & Login'}</button>
+          </div>
+        </form>
+        {error && <p style={{ color: 'tomato' }}>{error}</p>}
+      </div>
     </div>
   )
 }
