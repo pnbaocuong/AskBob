@@ -1,3 +1,5 @@
+"""Task endpoints with tenant isolation and basic CRUD."""
+
 import uuid
 from typing import Annotated, Optional
 
@@ -14,12 +16,14 @@ router = APIRouter()
 
 
 class StatusEnum(str, Enum):
+    """Allowed task statuses."""
     todo = "todo"
     in_progress = "in_progress"
     done = "done"
 
 
 class TaskCreate(BaseModel):
+    """Payload to create a task under a project."""
     title: str
     status: StatusEnum = StatusEnum.todo
     assignee: Optional[str] = None
@@ -27,12 +31,14 @@ class TaskCreate(BaseModel):
 
 
 class TaskUpdate(BaseModel):
+    """Payload to update a task fields."""
     title: Optional[str] = None
     status: Optional[StatusEnum] = None
     assignee: Optional[str] = None
 
 
 class TaskOut(BaseModel):
+    """Task response model."""
     id: uuid.UUID
     title: str
     status: str
@@ -49,6 +55,7 @@ async def list_tasks(
     tenant_id: Annotated[str, Depends(get_current_tenant_id)],
     project_id: Optional[uuid.UUID] = None,
 ):
+    """List tasks for current tenant; optionally filter by project."""
     query = select(Task).where(Task.tenant_id == tenant_id)
     if project_id:
         query = query.where(Task.project_id == project_id)
@@ -63,6 +70,7 @@ async def create_task(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     tenant_id: Annotated[str, Depends(get_current_tenant_id)],
 ):
+    """Create a task under a project owned by current tenant."""
     # Validate project belongs to tenant
     p = await session.execute(select(Project).where(Project.id == body.project_id, Project.tenant_id == tenant_id))
     if p.scalar_one_or_none() is None:
@@ -88,6 +96,7 @@ async def update_task(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     tenant_id: Annotated[str, Depends(get_current_tenant_id)],
 ):
+    """Update a task owned by current tenant."""
     result = await session.execute(select(Task).where(Task.id == task_id, Task.tenant_id == tenant_id))
     task = result.scalar_one_or_none()
     if task is None:
@@ -111,6 +120,7 @@ async def delete_task(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     tenant_id: Annotated[str, Depends(get_current_tenant_id)],
 ):
+    """Delete a task owned by current tenant."""
     result = await session.execute(select(Task).where(Task.id == task_id, Task.tenant_id == tenant_id))
     task = result.scalar_one_or_none()
     if task is None:

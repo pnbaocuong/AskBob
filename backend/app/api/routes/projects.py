@@ -1,3 +1,5 @@
+"""Project endpoints with strict tenant isolation."""
+
 import uuid
 from typing import Annotated, Optional
 
@@ -13,16 +15,19 @@ router = APIRouter()
 
 
 class ProjectCreate(BaseModel):
+    """Payload to create a project."""
     name: str
     description: Optional[str] = None
 
 
 class ProjectUpdate(BaseModel):
+    """Payload to update a project."""
     name: Optional[str] = None
     description: Optional[str] = None
 
 
 class ProjectOut(BaseModel):
+    """Project response model."""
     id: uuid.UUID
     name: str
     description: Optional[str] = None
@@ -36,6 +41,7 @@ async def list_projects(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     tenant_id: Annotated[str, Depends(get_current_tenant_id)],
 ):
+    """List projects for current tenant."""
     repo = ProjectRepositorySQLAlchemy(session)
     items = await project_uc.list_projects_for_tenant(repo, uuid.UUID(tenant_id))
     return [ProjectOut(id=i.id, name=i.name, description=i.description) for i in items]
@@ -47,6 +53,7 @@ async def create_project(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     tenant_id: Annotated[str, Depends(get_current_tenant_id)],
 ):
+    """Create a project for current tenant."""
     repo = ProjectRepositorySQLAlchemy(session)
     created = await project_uc.create_project(repo, uuid.UUID(tenant_id), body.name, body.description)
     return ProjectOut(id=created.id, name=created.name, description=created.description)
@@ -59,6 +66,7 @@ async def update_project(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     tenant_id: Annotated[str, Depends(get_current_tenant_id)],
 ):
+    """Update a project owned by current tenant."""
     # Temporarily keep direct update here for simplicity (can be moved to a dedicated use case later)
     from sqlalchemy import select
     from ...infrastructure.db.models import Project
@@ -84,6 +92,7 @@ async def delete_project(
     session: Annotated[AsyncSession, Depends(get_db_session)],
     tenant_id: Annotated[str, Depends(get_current_tenant_id)],
 ):
+    """Delete a project owned by current tenant."""
     from sqlalchemy import select
     from ...infrastructure.db.models import Project
 

@@ -1,3 +1,8 @@
+"""Authentication endpoints: register and login.
+
+Provides JWT-based authentication. Registration creates a tenant and the first user.
+"""
+
 from datetime import timedelta
 from typing import Annotated
 
@@ -16,18 +21,21 @@ router = APIRouter()
 
 
 class RegisterRequest(BaseModel):
+    """Registration payload to create a tenant and the first user."""
     email: EmailStr
     password: str
     tenant_name: str
 
 
 class TokenResponse(BaseModel):
+    """JWT access token response."""
     access_token: str
     token_type: str = "bearer"
 
 
 @router.post("/register", response_model=TokenResponse)
 async def register(req: RegisterRequest, session: Annotated[AsyncSession, Depends(get_db_session)]):
+    """Register a new tenant and user, returning a JWT token for immediate use."""
     # Check existing user
     exists = await session.execute(select(User).where(User.email == req.email))
     if exists.scalar_one_or_none():
@@ -47,6 +55,7 @@ async def register(req: RegisterRequest, session: Annotated[AsyncSession, Depend
 
 @router.post("/login", response_model=TokenResponse)
 async def login(form_data: Annotated[OAuth2PasswordRequestForm, Depends()], session: Annotated[AsyncSession, Depends(get_db_session)]):
+    """Login with email/password and receive a JWT token."""
     result = await session.execute(select(User).where(User.email == form_data.username))
     user = result.scalar_one_or_none()
     if user is None or not verify_password(form_data.password, user.hashed_password):
