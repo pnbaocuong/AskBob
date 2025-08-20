@@ -45,6 +45,12 @@ docker compose up --build
 - Frontend: `http://localhost:12173`
 - PostgreSQL: `localhost:12543`
 
+## Testing
+```bash
+cd backend
+pytest -q
+```
+
 ## Quick Usage Flow
 1) Register: POST `/auth/register` (the Login page already supports it), receive a token and store it in LocalStorage.
 2) Login: POST `/auth/login`.
