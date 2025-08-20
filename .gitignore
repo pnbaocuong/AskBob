@@ -1,0 +1,31 @@
+# OS / IDE
+.DS_Store
+.vscode/
+.idea/
+
+# Python
+.venv/
+backend/.venv/
+__pycache__/
+*.py[cod]
+
+# Node / Frontend
+frontend/node_modules/
+frontend/dist/
+node_modules/
+dist/
+build/
+
+# Env files
+backend/.env
+frontend/.env
+
+# Alembic cache
+backend/alembic/__pycache__/
+
+# Logs
+*.log
+
+# Do not include assessment docs in repo
+ASSESSMENT_CHECKLIST.md
+AskBob AI Full Stack Developer Assessment.md
